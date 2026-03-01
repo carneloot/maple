@@ -33,8 +33,8 @@ services:
 
   ingest:
     build:
-      context: .
-      dockerfile: apps/ingest/Dockerfile
+      context: ./apps/ingest
+      dockerfile: Dockerfile
     expose:
       - "3474"
     env_file: .env
