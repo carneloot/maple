@@ -3,19 +3,23 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    ports:
-      - "3472:3472"
+    expose:
+      - "3472"
     env_file: .env
     environment:
       PORT: 3472
     depends_on:
       otel-collector:
         condition: service_started
+      tinybird:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3472/health"]
       interval: 10s
       timeout: 5s
       retries: 3
+    networks:
+      - dokploy-network
 
   web:
     build:
@@ -24,15 +28,17 @@ services:
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3472}
         VITE_MAPLE_AUTH_MODE: ${MAPLE_AUTH_MODE:-self_hosted}
-    ports:
-      - "3471:80"
+    expose:
+      - "80"
+    networks:
+      - dokploy-network
 
   ingest:
     build:
       context: .
       dockerfile: apps/ingest/Dockerfile
-    ports:
-      - "3474:3474"
+    expose:
+      - "3474"
     env_file: .env
     environment:
       INGEST_PORT: 3474
@@ -43,15 +49,17 @@ services:
     depends_on:
       otel-collector:
         condition: service_started
+    networks:
+      - dokploy-network
 
   otel-collector:
     build:
       context: .
       dockerfile: otel/Dockerfile
-    ports:
-      - "4317:4317"
-      - "4318:4318"
-      - "13133:13133"
+    expose:
+      - "4317"
+      - "4318"
+      - "13133"
     env_file: .env
     environment:
       SD_API_HOST: api
@@ -62,6 +70,33 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    networks:
+      - dokploy-network
+
+  tinybird:
+    image: tinybirdco/tinybird-local:latest
+    platform: linux/amd64
+    expose:
+      - "7181"
+    environment:
+      COMPATIBILITY_MODE: 1
+    volumes:
+      - tinybird-clickhouse:/var/lib/clickhouse
+      - tinybird-redis:/redis-data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7181/"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - dokploy-network
 
 volumes:
   otel-queue-data:
+  tinybird-clickhouse:
+  tinybird-redis:
+
+networks:
+  dokploy-network:
+    external: true
