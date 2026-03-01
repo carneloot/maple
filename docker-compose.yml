@@ -52,8 +52,8 @@ services:
 
   otel-collector:
     build:
-      context: .
-      dockerfile: otel/Dockerfile
+      context: ./otel
+      dockerfile: Dockerfile
     expose:
       - "4317"
       - "4318"
