@@ -9,8 +9,6 @@ services:
     environment:
       PORT: 3472
     depends_on:
-      otel-collector:
-        condition: service_started
       tinybird:
         condition: service_healthy
     healthcheck:
